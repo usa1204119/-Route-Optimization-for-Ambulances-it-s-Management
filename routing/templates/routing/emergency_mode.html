@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <!-- Top Bar with Emergency Mode -->
+    <div class="d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded">
+        <h5 class="mb-0">Select New Route</h5>
+        <button class="btn btn-light">Emergency Mode</button>
+    </div>
+
+    <div class="row mt-4">
+        <!-- Map Section -->
+        <div class="col-md-8">
+            <div id="map" class="rounded shadow" style="height: 500px;"></div>
+        </div>
+
+        <!-- Route Information Section -->
+        <div class="col-md-4">
+            <div class="card p-3 mb-4 shadow-sm rounded">
+                <h5 class="text-primary mb-3">Route Information</h5>
+                <p><strong>Total Distance:</strong> {{ distance }}</p>
+                <p><strong>Estimated Duration (with traffic):</strong> {{ duration }}</p>
+                <hr>
+                <p><strong>Weather Condition:</strong> <span class="badge bg-success">✔</span></p>
+                <p><strong>Traffic Condition:</strong> <span class="badge bg-success">✔</span></p>
+                <p><strong>Patient Condition:</strong> <span class="badge bg-danger">✘</span></p>
+            </div>
+
+            <!-- Action Buttons -->
+            <a href="sms:7208328432?body=We%20are%20approaching%20with%20an%20ambulance.%20Please%20clear%20the%20traffic%20ahead." class="btn btn-primary w-100 mb-2">Notify Traffic Police</a>
+            <a href="sms:8956110805?body=We%20are%20approaching%20the%20hospital%20with%20the%20patient.%20Please%20be%20ready%20to%20receive." class="btn btn-secondary w-100">Notify Hospital Staff</a>
+
+
+        </div>
+    </div>
+
+    <!-- Nearby Hospitals Section -->
+    <div class="mt-4">
+        <h6 class="text-success"><i class="fas fa-hospital"></i> Nearby Hospitals:</h6>
+        <ul class="list-group">
+            {% for hospital in hospitals %}
+            <li class="list-group-item d-flex justify-content-between align-items-start rounded shadow-sm mb-2">
+                <div>
+                    <strong>{{ hospital.name }}</strong>
+                    <br>
+                    <small>{{ hospital.address }}</small>
+                    <br>
+                    <span class="badge bg-primary">Distance: {{ hospital.distance }} km</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="focusOnHospital({{ hospital.lat }}, {{ hospital.lng }}, '{{ hospital.name }}', '{{ hospital.address }}')">View on Map</button>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Styles -->
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    
+    .rounded {
+        border-radius: 10px !important;
+    }
+
+    .shadow {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .card {
+        border-radius: 10px;
+    }
+
+    .list-group-item {
+        transition: background-color 0.3s ease;
+    }
+
+    .list-group-item:hover {
+        background-color: #e9ecef;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+    }
+
+    /* Notification Buttons */
+    .btn-primary, .btn-secondary {
+        padding: 10px;
+        font-size: 1rem;
+    }
+</style>
+
+<!-- Google Maps API Integration -->
+<script>
+    let map;
+    let hospitalMarkers = [];
+    let hospitalRouteRenderer;
+
+    function initMap() {
+        var directionsService = new google.maps.DirectionsService();
+        var directionsRenderer = new google.maps.DirectionsRenderer({
+            polylineOptions: {
+                strokeColor: "#4285F4",
+                strokeWeight: 6
+            }
+        });
+
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 12,
+            center: {lat: {{ route_data.0.legs.0.start_location.lat }}, lng: {{ route_data.0.legs.0.start_location.lng }} },
+        });
+
+        directionsRenderer.setMap(map);
+        var request = {
+            origin: '{{ route_data.0.legs.0.start_address }}',
+            destination: '{{ route_data.0.legs.0.end_address }}',
+            travelMode: 'DRIVING'
+        };
+
+        directionsService.route(request, function(result, status) {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(result);
+            }
+        });
+    }
+
+    function focusOnHospital(lat, lng, name, address) {
+        hospitalMarkers.forEach(marker => marker.setMap(null));
+        hospitalMarkers = [];
+
+        if (hospitalRouteRenderer) {
+            hospitalRouteRenderer.setMap(null);
+        }
+
+        const marker = new google.maps.Marker({
+            position: {lat: lat, lng: lng},
+            map: map,
+            title: name,
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+            content: `<div><h6>${name}</h6><p>${address}</p></div>`
+        });
+
+        marker.addListener('click', function() {
+            infoWindow.open(map, marker);
+        });
+
+        hospitalMarkers.push(marker);
+        map.setZoom(15);
+        map.setCenter({lat: lat, lng: lng});
+        infoWindow.open(map, marker);
+
+        var directionsService = new google.maps.DirectionsService();
+        hospitalRouteRenderer = new google.maps.DirectionsRenderer({
+            polylineOptions: {
+                strokeColor: "#FF0000",
+                strokeWeight: 4
+            },
+            suppressMarkers: true
+        });
+
+        hospitalRouteRenderer.setMap(map);
+        
+        var routeRequest = {
+            origin: '{{ route_data.0.legs.0.end_address }}',
+            destination: { lat: lat, lng: lng },
+            travelMode: 'DRIVING'
+        };
+
+        directionsService.route(routeRequest, function(result, status) {
+            if (status === 'OK') {
+                hospitalRouteRenderer.setDirections(result);
+            } else {
+                console.error('Could not display hospital route:', status);
+            }
+        });
+    }
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ 'AIzaSyCLbPKjf1jQxqvkuNBeJK-6oQIEet540Zs' }}&callback=initMap" async defer></script>
+{% endblock %}

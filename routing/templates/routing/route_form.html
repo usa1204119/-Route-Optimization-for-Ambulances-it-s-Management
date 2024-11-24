@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="container mt-9" style="max-width: 1200px; padding: 20px; background-color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); border-radius: 12px;">
+    <div class="row">
+        <!-- Left Section with Form -->
+        <div class="col-md-6 d-flex flex-column justify-content-left">
+            <!-- Header Section with Title -->
+            <h1 class="mb-3" style="color: #302947; font-weight: bold; text-align: left;">
+                Start Planning the Fastest Route
+            </h1>
+            
+            <form method="POST" id="routeForm" class="p-3" style="background-color: #f9f9f9; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
+                {% csrf_token %}
+                
+                <!-- Start Location Section -->
+                <div class="form-group mb-3">
+                    <label for="start_location" class="form-label" style="font-weight: 600; font-size: 1.1rem; color: #555;">
+                        Starting Point <span class="text-muted" style="font-weight: normal;">or</span> 
+                        <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1" id="use_my_location" style="border-radius: 20px;">
+                            📍 Use My Location
+                        </button>
+                    </label>
+                    <div class="input-group">
+                        <input type="text" name="start_location" class="form-control shadow-sm" id="start_location" placeholder="Enter starting location" required
+                               style="padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
+                    </div>
+                </div>
+                
+                <!-- End Location Section -->
+                <div class="form-group mb-3">
+                    <label for="end_location" class="form-label" style="font-weight: 600; font-size: 1.1rem; color: #555;">
+                        Destination
+                    </label>
+                    <div class="input-group">
+                        <input type="text" name="end_location" class="form-control shadow-sm" id="end_location" placeholder="Enter destination" required
+                               style="padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
+                    </div>
+                </div>
+            
+                <!-- Mode Selection -->
+                <div class="form-group mb-3">
+                    <label for="mode" class="form-label" style="font-weight: 600; font-size: 1rem; color: #555;">
+                        Select Mode
+                    </label>
+                    <div class="d-flex flex-column" style="max-width: 300px; gap: 10px;">
+                        <!-- Normal Mode Radio Button -->
+                        <div class="custom-control custom-radio d-flex align-items-center">
+                            <input type="radio" id="normal_mode" name="mode" value="normal" class="custom-control-input" checked>
+                            <label class="custom-control-label" for="normal_mode" style="font-size: 1rem; font-weight: 500; color: #28a745; cursor: pointer;">
+                                Normal Mode
+                            </label>
+                        </div>
+                        
+                        <!-- Emergency Mode Radio Button -->
+                        <div class="custom-control custom-radio d-flex align-items-center">
+                            <input type="radio" id="emergency_mode" name="mode" value="emergency" class="custom-control-input">
+                            <label class="custom-control-label" for="emergency_mode" style="font-size: 1rem; font-weight: 500; color: #dc3545; cursor: pointer;">
+                                Emergency Mode
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Button -->
+                <button type="submit" class="btn btn-block" style="background-color: #5cb85c; color: white; padding: 12px; font-size: 1.1rem; border-radius: 8px; font-weight: bold;">
+                    🚑 Find the Fastest Route
+                </button>
+            </form>
+        </div>
+
+        <!-- Right Section with Ambulance Image -->
+        <div class="col-md-6 d-flex justify-content-center align-items-center">
+            <img src="{% static 'images/ambulance.png' %}" alt="Ambulance" class="img-fluid" style="max-width: 90%; max-height: 350px;">
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Include Google Maps Autocomplete and Geolocation Scripts -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ 'AIzaSyCLbPKjf1jQxqvkuNBeJK-6oQIEet540Zs' }}&libraries=places"></script>
+<script>
+    function initAutocomplete() {
+        // Create the autocomplete objects for the inputs
+        var startInput = document.getElementById('start_location');
+        var endInput = document.getElementById('end_location');
+
+        var startAutocomplete = new google.maps.places.Autocomplete(startInput);
+        var endAutocomplete = new google.maps.places.Autocomplete(endInput);
+    }
+
+    // Initialize the Google Maps Autocomplete
+    google.maps.event.addDomListener(window, 'load', initAutocomplete);
+
+    // "Use My Location" button functionality with high accuracy enabled
+    document.getElementById('use_my_location').addEventListener('click', function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                // Use Google Maps Geocoding API to convert coordinates to an address
+                const geocoder = new google.maps.Geocoder();
+                const latLng = new google.maps.LatLng(latitude, longitude);
+
+                geocoder.geocode({ 'location': latLng }, function(results, status) {
+                    if (status === 'OK') {
+                        if (results[0]) {
+                            document.getElementById('start_location').value = results[0].formatted_address;
+                        } else {
+                            alert('No address found for your location');
+                        }
+                    } else {
+                        alert('Geocoder failed due to: ' + status);
+                    }
+                });
+            }, function(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("Location access denied by user.");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("Location information is unavailable.");
+                        break;
+                    case error.TIMEOUT:
+                        alert("The request to get your location timed out.");
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        alert("An unknown error occurred.");
+                        break;
+                }
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    });
+</script>
+{% endblock %}

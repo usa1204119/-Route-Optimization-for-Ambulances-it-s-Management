@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Put this code anywhere in the body of your page where you want the badge to show up. -->
+
+<div itemscope itemtype='http://schema.org/Person' class='fiverr-seller-widget' style='display: inline-block;'>
+    <a itemprop='url' href=https://www.fiverr.com/utkarsh_django rel="nofollow" target="_blank" style='display: inline-block;'>
+       <div class='fiverr-seller-content' id='fiverr-seller-widget-content-e9fb4c7a-9672-47e3-80f4-242260c275b5' itemprop='contentURL' style='display: none;'></div>
+       <div id='fiverr-widget-seller-data' style='display: none;'>
+           <div itemprop='name' >utkarsh_django</div>
+           <div itemscope itemtype='http://schema.org/Organization'><span itemprop='name'>Fiverr</span></div>
+           <div itemprop='jobtitle'>Seller</div>
+           <div itemprop='description'>I have 5 years of hands-on experience in Django development, focusing on creating scalable and efficient web applications. My portfolio features diverse projects, including:
+
+- E-commerce Store with Payment Gateway: Developed a secure online store with integrated payment solutions.
+- Shipping Route Optimization: Created a system to enhance the efficiency and safety of international trade routes.
+- Emergency Ambulance Routing: Built a service that helps ambulances navigate the fastest routes in emergencies.
+- AI Voice Assistant: Designed an AI assistant for task automation and user interaction.</div>
+       </div>
+   </a>
+</div>
+
+<script id='fiverr-seller-widget-script-e9fb4c7a-9672-47e3-80f4-242260c275b5' src='https://widgets.fiverr.com/api/v1/seller/utkarsh_django?widget_id=e9fb4c7a-9672-47e3-80f4-242260c275b5' data-config='{"category_name":"Programming \u0026 Tech"}' async='true' defer='true'></script>
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Map Section -->
+        <div class="col-md-8">
+            <div id="map" style="height: 450px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);"></div>
+            <div class="mt-2 d-flex justify-content-center">
+                <button class="btn btn-danger text-white" style="width: 100%; border-radius: 6px; font-weight: bold;">
+                    Back To Hospital
+                </button>
+            </div>
+        </div>
+
+        <!-- Route Information Section -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; padding: 15px;">
+                <div class="card-body p-3">
+                    <h5 class="card-title text-primary"><i class="fas fa-info-circle"></i> Route Information</h5>
+                    <div class="d-flex justify-content-between">
+                        <p><strong>Total Distance:</strong></p>
+                        <p>{{ distance }} km</p>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <p><strong>Estimated Duration (with traffic):</strong></p>
+                        <p>{{ duration }}</p>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <p><strong>Weather Condition:</strong></p>
+                        <p><span class="text-success">&#10004;</span></p>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <p><strong>Traffic Condition:</strong></p>
+                        <p><span class="text-success">&#10004;</span></p>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <p><strong>Patient Condition:</strong></p>
+                        <p><span class="text-success">&#10004;</span></p>
+                    </div>
+
+                    <!-- Action Buttons -->
+            <a href="sms:7208328432?body=We%20are%20approaching%20with%20an%20ambulance.%20Please%20clear%20the%20traffic%20ahead." class="btn btn-primary w-100 mb-2">Notify Traffic Police</a>
+            <a href="sms:8956110805?body=We%20are%20approaching%20the%20hospital%20with%20the%20patient.%20Please%20be%20ready%20to%20receive." class="btn btn-secondary w-100">Notify Hospital Staff</a>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom Styles */
+    body {
+        background-color: #f5f5f5;
+    }
+
+    .card-title {
+        font-size: 1.2rem;
+    }
+
+    .card-body p {
+        margin-bottom: 5px;
+        font-size: 0.95rem;
+    }
+
+    .btn-outline-secondary {
+        font-size: 0.9rem;
+    }
+
+    .btn-danger {
+        background-color: #ff4b5c;
+        border-color: #ff4b5c;
+    }
+</style>
+<script>
+    let map;
+    let hospitalRouteRenderer; // Renderer for hospital route
+
+    function initMap() {
+        var directionsService = new google.maps.DirectionsService();
+        var directionsRenderer = new google.maps.DirectionsRenderer({
+            polylineOptions: {
+                strokeColor: "#4285F4", // Main route color
+                strokeWeight: 6
+            }
+        });
+
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 12,
+            center: {lat: {{ route_data.0.legs.0.start_location.lat }}, lng: {{ route_data.0.legs.0.start_location.lng }} },
+        });
+
+        directionsRenderer.setMap(map);
+        var request = {
+            origin: '{{ route_data.0.legs.0.start_address }}',
+            destination: '{{ route_data.0.legs.0.end_address }}',
+            travelMode: 'DRIVING'
+        };
+
+        directionsService.route(request, function(result, status) {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(result);
+            }
+        });
+    }
+
+    // Function to reverse the route when clicking "Back To Hospital"
+    function reverseRoute() {
+        var directionsService = new google.maps.DirectionsService();
+        var directionsRenderer = new google.maps.DirectionsRenderer({
+            polylineOptions: {
+                strokeColor: "#FF0000", // Different color for the reversed route
+                strokeWeight: 4
+            },
+            suppressMarkers: true // Don't display default markers
+        });
+
+        directionsRenderer.setMap(map);
+
+        // Reverse the origin and destination to go back to the hospital
+        var routeRequest = {
+            origin: '{{ route_data.0.legs.0.end_address }}', // The original destination becomes the start
+            destination: '{{ route_data.0.legs.0.start_address }}', // The original start becomes the destination
+            travelMode: 'DRIVING'
+        };
+
+        directionsService.route(routeRequest, function(result, status) {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(result);
+            } else {
+                console.error('Could not reverse the route:', status);
+            }
+        });
+    }
+
+    // Add event listener to the "Back To Hospital" button
+    document.querySelector('.btn-danger').addEventListener('click', reverseRoute);
+</script>
+
+
+
+
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ 'AIzaSyCLbPKjf1jQxqvkuNBeJK-6oQIEet540Zs' }}&callback=initMap" async defer></script>
+{% endblock %}
